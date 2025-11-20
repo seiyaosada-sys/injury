@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>受傷後 何週と何日？</title>
+
+<style>
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+        text-align: center;
+        padding: 30px;
+        background: #f2f7ff;
+    }
+    .box {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        max-width: 340px;
+        margin: auto;
+        box-shadow: 0px 4px 12px rgba(0,0,0,0.1);
+    }
+    .result {
+        font-size: 28px;
+        margin: 20px 0;
+        color: #2b6cb0;
+        font-weight: bold;
+    }
+    button {
+        padding: 10px 20px;
+        font-size: 18px;
+        border: none;
+        border-radius: 8px;
+        background: #2b6cb0;
+        color: white;
+        cursor: pointer;
+        margin-top: 10px;
+        width: 100%;
+    }
+    button:active {
+        background: #234e80;
+    }
+</style>
+</head>
+
+<body>
+
+<div class="box">
+    <h2>受傷後 何週と何日？</h2>
+
+    <p>受傷日を選択してください</p>
+    <input type="date" id="injuryDate">
+
+    <div id="result" class="result"></div>
+
+    <button onclick="calc()">計算</button>
+    <button onclick="resetAll()" style="background: #999;">リセット</button>
+</div>
+
+<script>
+function calc() {
+    const input = document.getElementById("injuryDate").value;
+    if (!input) {
+        document.getElementById("result").textContent = "日付を選んでください";
+        return;
+    }
+
+    const injuryDate = new Date(input);
+    const today = new Date();
+
+    // 今日との差（日数）
+    const diffTime = today - injuryDate;
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) {
+        document.getElementById("result").textContent = "未来の日付です";
+        return;
+    }
+
+    const weeks = Math.floor(diffDays / 7);
+    const days = diffDays % 7;
+
+    document.getElementById("result").textContent = `${weeks}週と ${days}日`;
+}
+
+function resetAll() {
+    document.getElementById("injuryDate").value = "";
+    document.getElementById("result").textContent = "";
+}
+</script>
+
+</body>
+</html>
