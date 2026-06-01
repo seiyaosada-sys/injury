@@ -83,6 +83,15 @@
         text-align: center;
         font-size: 14px;
     }
+    .today-note {
+        margin: 12px 0 0;
+        padding: 10px;
+        border-radius: 8px;
+        background: #f8fafc;
+        color: #475569;
+        font-size: 14px;
+        text-align: center;
+    }
     button {
         padding: 12px 18px;
         font-size: 18px;
@@ -131,8 +140,7 @@
     </div>
     <p id="chartPreview" class="hint">カルテ記載：0W0d</p>
 
-    <label for="visitDate">カルテの来院日</label>
-    <input type="date" id="visitDate">
+    <p id="todayNote" class="today-note"></p>
 
     <div id="result" class="result"></div>
     <div id="subResult" class="sub-result"></div>
@@ -164,11 +172,8 @@ function todayStart() {
     return today;
 }
 
-function formatDateInput(date) {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
+function formatJapaneseDate(date) {
+    return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`;
 }
 
 function dateDiffDays(fromDate, toDate) {
@@ -195,6 +200,7 @@ function selectedChartAge() {
 function updateChartPreview() {
     const chartAge = selectedChartAge();
     document.getElementById("chartPreview").textContent = `カルテ記載：${chartAge.weeks}W${chartAge.days}d`;
+    calcFromChart();
 }
 
 function showResult(totalDays, addedDays) {
@@ -216,24 +222,8 @@ function showMessage(message) {
 }
 
 function calcFromChart() {
-    const visitDateValue = document.getElementById("visitDate").value;
-
-    if (!visitDateValue) {
-        showMessage("来院日を入れてください");
-        return;
-    }
-
     const chartAge = selectedChartAge();
-    const visitDate = parseLocalDate(visitDateValue);
-    const today = todayStart();
-    const addedDays = dateDiffDays(visitDate, today);
-
-    if (addedDays < 0) {
-        showMessage("未来の来院日です");
-        return;
-    }
-
-    showResult((chartAge.weeks * 7) + chartAge.days + addedDays, addedDays);
+    showResult((chartAge.weeks * 7) + chartAge.days, 0);
 }
 
 function calcFromInjuryDate() {
@@ -257,7 +247,6 @@ function calcFromInjuryDate() {
 function resetAll() {
     document.getElementById("chartWeeks").value = "0";
     document.getElementById("chartDays").value = "0";
-    document.getElementById("visitDate").value = formatDateInput(todayStart());
     document.getElementById("injuryDate").value = "";
     document.getElementById("result").textContent = "";
     document.getElementById("subResult").textContent = "";
@@ -268,7 +257,7 @@ fillSelect("chartWeeks", 52);
 fillSelect("chartDays", 6);
 document.getElementById("chartWeeks").addEventListener("change", updateChartPreview);
 document.getElementById("chartDays").addEventListener("change", updateChartPreview);
-document.getElementById("visitDate").value = formatDateInput(todayStart());
+document.getElementById("todayNote").textContent = `今日の入力用：${formatJapaneseDate(todayStart())}`;
 updateChartPreview();
 </script>
 
