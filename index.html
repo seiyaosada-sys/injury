@@ -32,13 +32,35 @@
         margin-top: 14px;
         font-weight: 700;
     }
-    input {
+    input,
+    select {
         width: 100%;
         margin-top: 6px;
         padding: 10px;
         border: 1px solid #cbd5e1;
         border-radius: 8px;
         font-size: 18px;
+        background: white;
+    }
+    .week-day-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
+    .select-wrap {
+        position: relative;
+    }
+    .select-wrap span {
+        position: absolute;
+        right: 12px;
+        bottom: 11px;
+        color: #64748b;
+        font-weight: 700;
+        pointer-events: none;
+    }
+    .select-wrap select {
+        padding-right: 42px;
+        appearance: none;
     }
     .hint {
         margin: 6px 0 0;
@@ -96,9 +118,18 @@
 <div class="box">
     <h2>受傷後 何週と何日？</h2>
 
-    <label for="chartAge">カルテ記載の週数</label>
-    <input type="text" id="chartAge" inputmode="text" placeholder="例：4W3d">
-    <p class="hint">カルテの「4W3d」をそのまま入力</p>
+    <label>カルテ記載の週数</label>
+    <div class="week-day-row">
+        <div class="select-wrap">
+            <select id="chartWeeks" aria-label="カルテ記載の週"></select>
+            <span>W</span>
+        </div>
+        <div class="select-wrap">
+            <select id="chartDays" aria-label="カルテ記載の日"></select>
+            <span>d</span>
+        </div>
+    </div>
+    <p id="chartPreview" class="hint">カルテ記載：0W0d</p>
 
     <label for="visitDate">カルテの来院日</label>
     <input type="date" id="visitDate">
@@ -144,17 +175,26 @@ function dateDiffDays(fromDate, toDate) {
     return Math.round((toDate - fromDate) / MS_PER_DAY);
 }
 
-function parseChartAge(value) {
-    const normalized = value.trim().replace(/\s+/g, "").toLowerCase();
-    const match = normalized.match(/^(?:(\d+)w)?(?:(\d+)d)?$/);
-    if (!match || (!match[1] && !match[2])) {
-        return null;
+function fillSelect(id, max) {
+    const select = document.getElementById(id);
+    for (let value = 0; value <= max; value += 1) {
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = value;
+        select.appendChild(option);
     }
+}
 
+function selectedChartAge() {
     return {
-        weeks: Number(match[1] || 0),
-        days: Number(match[2] || 0)
+        weeks: Number(document.getElementById("chartWeeks").value),
+        days: Number(document.getElementById("chartDays").value)
     };
+}
+
+function updateChartPreview() {
+    const chartAge = selectedChartAge();
+    document.getElementById("chartPreview").textContent = `カルテ記載：${chartAge.weeks}W${chartAge.days}d`;
 }
 
 function showResult(totalDays, addedDays) {
@@ -176,20 +216,14 @@ function showMessage(message) {
 }
 
 function calcFromChart() {
-    const chartAgeValue = document.getElementById("chartAge").value;
     const visitDateValue = document.getElementById("visitDate").value;
 
-    if (chartAgeValue === "" || !visitDateValue) {
-        showMessage("週数と来院日を入れてください");
+    if (!visitDateValue) {
+        showMessage("来院日を入れてください");
         return;
     }
 
-    const chartAge = parseChartAge(chartAgeValue);
-    if (!chartAge) {
-        showMessage("例：4W3d の形で入れてください");
-        return;
-    }
-
+    const chartAge = selectedChartAge();
     const visitDate = parseLocalDate(visitDateValue);
     const today = todayStart();
     const addedDays = dateDiffDays(visitDate, today);
@@ -221,14 +255,21 @@ function calcFromInjuryDate() {
 }
 
 function resetAll() {
-    document.getElementById("chartAge").value = "";
+    document.getElementById("chartWeeks").value = "0";
+    document.getElementById("chartDays").value = "0";
     document.getElementById("visitDate").value = formatDateInput(todayStart());
     document.getElementById("injuryDate").value = "";
     document.getElementById("result").textContent = "";
     document.getElementById("subResult").textContent = "";
+    updateChartPreview();
 }
 
+fillSelect("chartWeeks", 52);
+fillSelect("chartDays", 6);
+document.getElementById("chartWeeks").addEventListener("change", updateChartPreview);
+document.getElementById("chartDays").addEventListener("change", updateChartPreview);
 document.getElementById("visitDate").value = formatDateInput(todayStart());
+updateChartPreview();
 </script>
 
 </body>
