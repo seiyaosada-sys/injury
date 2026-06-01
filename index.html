@@ -6,28 +6,63 @@
 <title>受傷後 何週と何日？</title>
 
 <style>
+    * {
+        box-sizing: border-box;
+    }
     body {
         font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
-        text-align: center;
-        padding: 30px;
-        background: #f2f7ff;
+        padding: 24px;
+        background: #eef5ff;
+        color: #1f2937;
     }
     .box {
         background: white;
-        padding: 20px;
+        padding: 22px;
         border-radius: 12px;
-        max-width: 340px;
+        max-width: 380px;
         margin: auto;
-        box-shadow: 0px 4px 12px rgba(0,0,0,0.1);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    h2 {
+        margin: 0 0 18px;
+        text-align: center;
+    }
+    label {
+        display: block;
+        margin-top: 14px;
+        font-weight: 700;
+    }
+    input {
+        width: 100%;
+        margin-top: 6px;
+        padding: 10px;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        font-size: 18px;
+    }
+    .hint {
+        margin: 6px 0 0;
+        color: #64748b;
+        font-size: 14px;
+        line-height: 1.5;
     }
     .result {
+        min-height: 40px;
         font-size: 28px;
         margin: 20px 0;
         color: #2b6cb0;
-        font-weight: bold;
+        font-weight: 700;
+        text-align: center;
+    }
+    .sub-result {
+        margin-top: -12px;
+        min-height: 22px;
+        color: #64748b;
+        text-align: center;
+        font-size: 14px;
     }
     button {
-        padding: 10px 20px;
+        padding: 12px 18px;
         font-size: 18px;
         border: none;
         border-radius: 8px;
@@ -40,6 +75,19 @@
     button:active {
         background: #234e80;
     }
+    .reset {
+        background: #777;
+    }
+    details {
+        margin-top: 18px;
+        padding-top: 16px;
+        border-top: 1px solid #e2e8f0;
+    }
+    summary {
+        cursor: pointer;
+        font-weight: 700;
+        color: #2b6cb0;
+    }
 </style>
 </head>
 
@@ -48,45 +96,126 @@
 <div class="box">
     <h2>受傷後 何週と何日？</h2>
 
-    <p>受傷日を選択してください</p>
-    <input type="date" id="injuryDate">
+    <label for="chartDays">カルテ記載の日数</label>
+    <input type="number" id="chartDays" min="0" step="1" inputmode="numeric" placeholder="例：10">
+    <p class="hint">最終来院日の時点で「受傷後何日」と書かれている数字</p>
+
+    <label for="visitDate">カルテの来院日</label>
+    <input type="date" id="visitDate">
 
     <div id="result" class="result"></div>
+    <div id="subResult" class="sub-result"></div>
 
-    <button onclick="calc()">計算</button>
-    <button onclick="resetAll()" style="background: #999;">リセット</button>
+    <button onclick="calcFromChart()">計算</button>
+    <button onclick="resetAll()" class="reset">リセット</button>
+
+    <details>
+        <summary>受傷日から計算する</summary>
+
+        <label for="injuryDate">受傷日</label>
+        <input type="date" id="injuryDate">
+
+        <button onclick="calcFromInjuryDate()">受傷日で計算</button>
+    </details>
 </div>
 
 <script>
-function calc() {
-    const input = document.getElementById("injuryDate").value;
-    if (!input) {
-        document.getElementById("result").textContent = "日付を選んでください";
+const MS_PER_DAY = 1000 * 60 * 60 * 24;
+
+function parseLocalDate(value) {
+    const parts = value.split("-").map(Number);
+    return new Date(parts[0], parts[1] - 1, parts[2]);
+}
+
+function todayStart() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return today;
+}
+
+function formatDateInput(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+}
+
+function dateDiffDays(fromDate, toDate) {
+    return Math.round((toDate - fromDate) / MS_PER_DAY);
+}
+
+function showResult(totalDays, addedDays) {
+    const weeks = Math.floor(totalDays / 7);
+    const days = totalDays % 7;
+    document.getElementById("result").textContent = `${weeks}週と ${days}日`;
+
+    const subResult = document.getElementById("subResult");
+    if (addedDays > 0) {
+        subResult.textContent = `カルテ記載日数に ${addedDays}日 追加`;
+    } else {
+        subResult.textContent = "";
+    }
+}
+
+function showMessage(message) {
+    document.getElementById("result").textContent = message;
+    document.getElementById("subResult").textContent = "";
+}
+
+function calcFromChart() {
+    const chartDaysValue = document.getElementById("chartDays").value;
+    const visitDateValue = document.getElementById("visitDate").value;
+
+    if (chartDaysValue === "" || !visitDateValue) {
+        showMessage("日数と来院日を入れてください");
         return;
     }
 
-    const injuryDate = new Date(input);
-    const today = new Date();
+    const chartDays = Number(chartDaysValue);
+    if (!Number.isInteger(chartDays) || chartDays < 0) {
+        showMessage("日数は0以上の整数で入れてください");
+        return;
+    }
 
-    // 今日との差（日数）
-    const diffTime = today - injuryDate;
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    const visitDate = parseLocalDate(visitDateValue);
+    const today = todayStart();
+    const addedDays = dateDiffDays(visitDate, today);
+
+    if (addedDays < 0) {
+        showMessage("未来の来院日です");
+        return;
+    }
+
+    showResult(chartDays + addedDays, addedDays);
+}
+
+function calcFromInjuryDate() {
+    const injuryDateValue = document.getElementById("injuryDate").value;
+    if (!injuryDateValue) {
+        showMessage("受傷日を選んでください");
+        return;
+    }
+
+    const injuryDate = parseLocalDate(injuryDateValue);
+    const diffDays = dateDiffDays(injuryDate, todayStart());
 
     if (diffDays < 0) {
-        document.getElementById("result").textContent = "未来の日付です";
+        showMessage("未来の日付です");
         return;
     }
 
-    const weeks = Math.floor(diffDays / 7);
-    const days = diffDays % 7;
-
-    document.getElementById("result").textContent = `${weeks}週と ${days}日`;
+    showResult(diffDays, 0);
 }
 
 function resetAll() {
+    document.getElementById("chartDays").value = "";
+    document.getElementById("visitDate").value = formatDateInput(todayStart());
     document.getElementById("injuryDate").value = "";
     document.getElementById("result").textContent = "";
+    document.getElementById("subResult").textContent = "";
 }
+
+document.getElementById("visitDate").value = formatDateInput(todayStart());
 </script>
 
 </body>
