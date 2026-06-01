@@ -96,9 +96,9 @@
 <div class="box">
     <h2>受傷後 何週と何日？</h2>
 
-    <label for="chartDays">カルテ記載の日数</label>
-    <input type="number" id="chartDays" min="0" step="1" inputmode="numeric" placeholder="例：10">
-    <p class="hint">最終来院日の時点で「受傷後何日」と書かれている数字</p>
+    <label for="chartAge">カルテ記載の週数</label>
+    <input type="text" id="chartAge" inputmode="text" placeholder="例：4W3d">
+    <p class="hint">カルテの「4W3d」をそのまま入力</p>
 
     <label for="visitDate">カルテの来院日</label>
     <input type="date" id="visitDate">
@@ -144,6 +144,19 @@ function dateDiffDays(fromDate, toDate) {
     return Math.round((toDate - fromDate) / MS_PER_DAY);
 }
 
+function parseChartAge(value) {
+    const normalized = value.trim().replace(/\s+/g, "").toLowerCase();
+    const match = normalized.match(/^(?:(\d+)w)?(?:(\d+)d)?$/);
+    if (!match || (!match[1] && !match[2])) {
+        return null;
+    }
+
+    return {
+        weeks: Number(match[1] || 0),
+        days: Number(match[2] || 0)
+    };
+}
+
 function showResult(totalDays, addedDays) {
     const weeks = Math.floor(totalDays / 7);
     const days = totalDays % 7;
@@ -163,17 +176,17 @@ function showMessage(message) {
 }
 
 function calcFromChart() {
-    const chartDaysValue = document.getElementById("chartDays").value;
+    const chartAgeValue = document.getElementById("chartAge").value;
     const visitDateValue = document.getElementById("visitDate").value;
 
-    if (chartDaysValue === "" || !visitDateValue) {
-        showMessage("日数と来院日を入れてください");
+    if (chartAgeValue === "" || !visitDateValue) {
+        showMessage("週数と来院日を入れてください");
         return;
     }
 
-    const chartDays = Number(chartDaysValue);
-    if (!Number.isInteger(chartDays) || chartDays < 0) {
-        showMessage("日数は0以上の整数で入れてください");
+    const chartAge = parseChartAge(chartAgeValue);
+    if (!chartAge) {
+        showMessage("例：4W3d の形で入れてください");
         return;
     }
 
@@ -186,7 +199,7 @@ function calcFromChart() {
         return;
     }
 
-    showResult(chartDays + addedDays, addedDays);
+    showResult((chartAge.weeks * 7) + chartAge.days + addedDays, addedDays);
 }
 
 function calcFromInjuryDate() {
@@ -208,7 +221,7 @@ function calcFromInjuryDate() {
 }
 
 function resetAll() {
-    document.getElementById("chartDays").value = "";
+    document.getElementById("chartAge").value = "";
     document.getElementById("visitDate").value = formatDateInput(todayStart());
     document.getElementById("injuryDate").value = "";
     document.getElementById("result").textContent = "";
